@@ -1,6 +1,8 @@
 idf_component_register(
 	SRCS /dev/null
-	INCLUDE_DIRS ".")
+	INCLUDE_DIRS "."
+	LDFRAGMENTS "linker.lf"
+)
 
 idf_build_get_property(TARGET IDF_TARGET)
 idf_build_get_property(ARCH IDF_TARGET_ARCH)
@@ -9,13 +11,11 @@ if(NOT "${ARCH}" STREQUAL "riscv")
 	message(FATAL_ERROR "Architecture '${ARCH}' of target '${TARGET}' not supported")
 endif()
 
-
-
 # The target swift will be building for
 set(SWIFT_TARGET "riscv32-none-none-eabi")
 
 # The target of the host OS, required for sourcekitLSP to work
-set(SWIFT_LSP_TARGET "x86_64-unknown-linux-gnu")
+set(SWIFT_LSP_TARGET "arm64-apple-darwin24.0.0")
 
 # Name of the library product in Package.swift
 set(SWIFT_PRODUCT_NAME "swiftcode")
@@ -52,9 +52,15 @@ set(SWIFT_PRODUCT_RELEASE "${SWIFT_PRODUCT_BUILD}/release")
 set(SWIFT_PRODUCT_ARCHIVE "${SWIFT_PRODUCT_RELEASE}/lib${SWIFT_PRODUCT_NAME}.a")
 
 # Get swift toolchain location
-execute_process(COMMAND which swift OUTPUT_VARIABLE _SWIFT_LOCATION OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND realpath ${_SWIFT_LOCATION} OUTPUT_VARIABLE _SWIFT_ABS_LOCATION OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND dirname ${_SWIFT_ABS_LOCATION} OUTPUT_VARIABLE SWIFT_TOOLCHAIN OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(DEFINED ENV{SWIFT_TOOLCHAIN})
+    set(_SWIFT_ABS_LOCATION $ENV{SWIFT_TOOLCHAIN})
+    set(SWIFT_TOOLCHAIN $ENV{SWIFT_TOOLCHAIN})
+    set(_SWIFT_LOCATION "$ENV{SWIFT_TOOLCHAIN}/swift")
+else()
+    execute_process(COMMAND which swift OUTPUT_VARIABLE _SWIFT_LOCATION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND realpath ${_SWIFT_LOCATION} OUTPUT_VARIABLE _SWIFT_ABS_LOCATION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND dirname ${_SWIFT_ABS_LOCATION} OUTPUT_VARIABLE SWIFT_TOOLCHAIN OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
 
 # Generate Archive
 add_custom_target(swift-archive
